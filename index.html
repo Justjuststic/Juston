@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JUSTON Panel</title>
-
+<title>JUSTON Premium Panel</title>
 <style>
 :root { --main:red; }
 
@@ -74,8 +73,14 @@ button:hover{transform:scale(1.05); box-shadow:0 0 25px var(--main);}
   100%{box-shadow:0 0 5px #000 inset;}
 }
 
-/* TEAM */
-.groupCard{margin-bottom:20px; transition:0.5s;}
+/* TEAM TABS */
+.teamTabs{display:flex;gap:10px;margin-bottom:15px;}
+.teamTabs button{flex:1;}
+.teamContent{overflow:hidden;position:relative;}
+.teamSlide{position:absolute;width:100%;top:0;left:100%;transition:0.5s;opacity:0;}
+.teamSlide.active{left:0;opacity:1;transition:0.5s;}
+
+/* TEAM MEMBERS */
 .member{
   display:flex; align-items:center; gap:10px;
   background:rgba(0,0,0,0.6);
@@ -102,11 +107,7 @@ input, textarea{padding:10px; margin:5px 0; width:90%; border-radius:6px; border
 input:focus,textarea:focus{outline:none; border:1px solid var(--main); box-shadow:0 0 8px var(--main); background:rgba(255,255,255,0.05);}
 
 /* SIDEBAR */
-.sidebar{
-  position:fixed; left:-100%; width:70%; height:100%;
-  background:rgba(5,5,5,0.95); transition:0.3s; padding:20px;
-  backdrop-filter:blur(10px); border-right:1px solid rgba(255,255,255,0.1);
-}
+.sidebar{position:fixed; left:-100%; width:70%; height:100%; background:rgba(5,5,5,0.95); transition:0.3s; padding:20px; backdrop-filter:blur(10px); border-right:1px solid rgba(255,255,255,0.1);}
 .sidebar.active{left:0; transition:0.5s;}
 .sidebar a{display:block; margin:15px 0; cursor:pointer; transition:0.2s;}
 .sidebar a:hover{color:var(--main);}
@@ -136,9 +137,16 @@ input:focus,textarea:focus{outline:none; border:1px solid var(--main); box-shado
 <div id="home" class="page"><h1>JUSTON</h1></div>
 <div id="server" class="page" style="display:none;"><div class="card">Status: 🟢 Online</div></div>
 <div id="shop" class="page" style="display:none;"><div id="shopList"></div></div>
-<div id="team" class="page" style="display:none;"><div id="teamList"></div><button onclick="addGroup()">+ Gruppe</button></div>
+
+<div id="team" class="page" style="display:none;">
+  <div class="teamTabs" id="teamTabs"></div>
+  <div class="teamContent" id="teamContent"></div>
+  <button onclick="addGroup()">+ Gruppe</button>
+</div>
+
 <div id="blog" class="page" style="display:none;"><div id="blogList"></div></div>
 <div id="chat" class="page" style="display:none;"><div id="chatBox"></div><input id="chatInput"><button onclick="sendMsg()">Senden</button></div>
+
 <div id="profile" class="page" style="display:none;">
   <div class="card">
     <input id="nameInput" placeholder="Name">
@@ -148,6 +156,7 @@ input:focus,textarea:focus{outline:none; border:1px solid var(--main); box-shado
     <button onclick="logout()">Logout</button>
   </div>
 </div>
+
 <div id="settings" class="page" style="display:none;">
   <button onclick="setTheme('red')">Rot</button>
   <button onclick="setTheme('blue')">Blau</button>
@@ -165,7 +174,7 @@ window.showPage = pageId => {
   document.getElementById(pageId).style.display = "block";
 }
 
-// User System
+// Users
 let users = JSON.parse(localStorage.getItem("users")) || [{email:"Juston@Juston.com", password:"1234", coins:500, role:"admin"}];
 let currentUser = JSON.parse(localStorage.getItem("currentUser"));
 let team = JSON.parse(localStorage.getItem("team")) || [];
@@ -180,51 +189,40 @@ function getUser(){return users.find(u => u.email===currentUser?.email);}
 function getRankTag(rank){const color = RANK_COLORS[rank] || "#555"; return `<span class="rankTag" style="background:${color}; box-shadow:0 0 8px ${color},0 0 15px ${color} inset;">${rank}</span>`;}
 
 // Login/Register
-window.login = () => {
-  const n = clean(nameInput.value.trim()), p = clean(passInput.value.trim());
-  let u = users.find(u => u.email===n+"@Juston.com" && u.password===p);
-  if(!u) return alert("Falsch!");
-  currentUser = u; save(); updateUI();
-}
-window.register = () => {
-  const n = clean(nameInput.value.trim()), p = clean(passInput.value.trim());
-  if(!n||!p) return alert("Füll alles aus!");
-  const e = n+"@Juston.com";
-  if(users.find(u=>u.email===e)) return alert("Existiert!");
-  users.push({email:e,password:p,coins:200,role:"user"}); save(); alert("Registriert!");
-}
-window.logout = () => {currentUser=null; save(); updateUI();}
+window.login = () => { let n=clean(nameInput.value.trim()), p=clean(passInput.value.trim()); let u = users.find(u=>u.email===n+"@Juston.com" && u.password===p); if(!u) return alert("Falsch!"); currentUser=u; save(); updateUI();}
+window.register = () => { let n=clean(nameInput.value.trim()), p=clean(passInput.value.trim()); if(!n||!p)return alert("Füll alles aus!"); const e=n+"@Juston.com"; if(users.find(u=>u.email===e)) return alert("Existiert!"); users.push({email:e,password:p,coins:200,role:"user"}); save(); alert("Registriert!");}
+window.logout = () => { currentUser=null; save(); updateUI();}
 
 // Update UI
 function updateUI(){
   coins.innerText="0💰"; adminBtn.style.display="none";
-  let u = getUser(); if(!u) return;
-  coins.innerText = u.coins+"💰"; if(u.role==="admin") adminBtn.style.display="block";
+  let u=getUser(); if(!u) return;
+  coins.innerText=u.coins+"💰"; if(u.role==="admin") adminBtn.style.display="block";
   renderShop(); renderTeam(); renderChat();
 }
 
 // Shop
 function renderShop(){
-  shopList.innerHTML=""; RANKS_BUYABLE.forEach((r,i)=>{
-    let p=(i+1)*100;
-    shopList.innerHTML+=`<div class="card"><h3>${getRankTag(r)}</h3><button onclick="buyRank('${r}',${p})">Kaufen (${p}💰)</button></div>`;
-  });
-}
-window.buyRank = (rank, price) => {
-  let u=getUser(); if(!u) return alert("Login!");
-  if(u.coins < price) return alert("Zu wenig Coins!");
-  u.coins -= price; u.role = rank; save(); updateUI();
-}
+  shopList.innerHTML=""; RANKS_BUYABLE.forEach((r,i)=>{let p=(i+1)*100; shopList.innerHTML+=`<div class="card"><h3>${getRankTag(r)}</h3><button onclick="buyRank('${r}',${p})">Kaufen (${p}💰)</button></div>`;});}
+window.buyRank=(rank,price)=>{let u=getUser(); if(!u)return alert("Login!"); if(u.coins<price)return alert("Zu wenig Coins!"); u.coins-=price; u.role=rank; save(); updateUI();}
 
-// Team
-window.addGroup = () => { let n=prompt("Gruppenname:"); if(!n) return; team.push({group:n,members:[]}); save(); renderTeam(); }
-window.addMember = gi => { let n=prompt("Spieler Name:"); if(!n) return; let s=prompt("Minecraft Name:")||"Steve"; let r=prompt("Rank:")||"Member"; team[gi].members.push({name:n,skin:s,rank:r}); save(); renderTeam(); }
-window.delMember = (gi,mi) => { team[gi].members.splice(mi,1); save(); renderTeam(); }
-function renderTeam(){ teamList.innerHTML=""; team.forEach((g,gi)=>{ let membersHTML=g.members.map((m,mi)=>`<div class="member"><img src="https://mc-heads.net/head/${m.skin}" onerror="this.src='https://mc-heads.net/head/Steve'"><div><b>${m.name}</b><br>${getRankTag(m.rank)}</div><button onclick="delMember(${gi},${mi})">❌</button></div>`).join(""); teamList.innerHTML+=`<div class="card groupCard"><h2>${g.group}</h2>${membersHTML}<button onclick="addMember(${gi})">+ Spieler</button></div>`; }); }
+// Team Tabs
+window.addGroup=()=>{let n=prompt("Gruppenname:"); if(!n) return; team.push({group:n,members:[]}); save(); renderTeam();}
+window.addMember=gi=>{let n=prompt("Spieler Name:"); if(!n) return; let s=prompt("Minecraft Name:")||"Steve"; let r=prompt("Rank:")||"Member"; team[gi].members.push({name:n,skin:s,rank:r}); save(); renderTeam();}
+window.delMember=(gi,mi)=>{team[gi].members.splice(mi,1); save(); renderTeam();}
+function renderTeam(){
+  teamTabs.innerHTML=""; teamContent.innerHTML="";
+  team.forEach((g,gi)=>{
+    let btn=document.createElement("button"); btn.innerText=g.group; btn.onclick=()=>{document.querySelectorAll(".teamSlide").forEach(sl=>sl.classList.remove("active")); document.getElementById("slide"+gi).classList.add("active");}; teamTabs.appendChild(btn);
+    let slide=document.createElement("div"); slide.className="teamSlide"; slide.id="slide"+gi;
+    slide.innerHTML=g.members.map((m,mi)=>`<div class="member"><img src="https://mc-heads.net/head/${m.skin}" onerror="this.src='https://mc-heads.net/head/Steve'"><div><b>${m.name}</b><br>${getRankTag(m.rank)}</div><button onclick="delMember(${gi},${mi})">❌</button></div>`).join(""); slide.innerHTML+=`<button onclick="addMember(${gi})">+ Spieler</button>`; teamContent.appendChild(slide);
+  });
+  if(team.length>0)document.getElementById("slide0").classList.add("active");
+}
 
 // Chat
-window.sendMsg = () => { let u=getUser(); if(!u) return alert("Login!"); let m=clean(chatInput.value.trim()); if(!m) return; chat.push(u.email+": "+m); if(chat.length>50) chat.shift(); chatInput.value=""; save(); renderChat(); }
-function renderChat(){ chatBox.innerHTML=chat.map(m=>{ let cls=m.startsWith(currentUser?.email)?'self':'other'; return `<div class="${cls}">${m}</div>` }).join(""); }
+window.sendMsg=()=>{let u=getUser(); if(!u)return alert("Login!"); let m=clean(chatInput.value.trim()); if(!m)return; chat.push(u.email+": "+m); if(chat.length>50) chat.shift(); chatInput.value=""; save(); renderChat();}
+function renderChat(){chatBox.innerHTML=chat.map(m=>{let cls=m.startsWith(currentUser?.email)?'self':'other'; return `<div class="${cls}">${m}</div>`;}).join("");}
 
 updateUI();
 </script>
